@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "platform": "ios",
+  "implementation": "native-swift",
+  "bundle_identifier": "com.infinityball.dialshot",
+  "targeted_device_family": "1",
+  "native_ipad_support": false,
+  "minimum_sdk_major": 26,
+  "minimum_deployment_target": "26.0",
+  "xcode": {
+    "version": "26.0.1",
+    "build": "17A400"
+  },
+  "ios_sdk": "26.0",
+  "swift_language_mode": "6",
+  "network_allowlist": []
+}
