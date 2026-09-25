@@ -66,7 +66,7 @@ All records live in an app-private local SQLite database. Export happens only af
 
 ## Status
 
-Documentation and backlog scaffold only. No Xcode project, application code, build, test suite, archive, TestFlight binary, iPhone Duo compatibility evidence, or connected-device support exists yet.
+Native iPhone skeleton landed: `DialShot.xcodeproj` (app + UI-test targets, bundle id `com.infinityball.dialshot`, `TARGETED_DEVICE_FAMILY = 1`), the pure-Swift `Packages/DialShotKit` package, and CI that pins Xcode 26.0.1 (17A400) / iOS SDK 26.0, asserts iPhone-only on the built app, and enforces the empty network allowlist. See [docs/bootstrap-evidence.md](docs/bootstrap-evidence.md) for what is host-verified versus CI-gated. No product journeys, archive, TestFlight binary, iPhone Duo compatibility evidence, or connected-device support exists yet.
 
 ## Milestones
 
@@ -79,7 +79,7 @@ Documentation and backlog scaffold only. No Xcode project, application code, bui
 
 ## Development quickstart
 
-The first implementation issue will create the Xcode project and Swift packages. Planned commands on an Apple host are:
+Run the pure-Swift package suite on any supported Swift 6 host. Run the native app test only on an Apple host with the exact toolchain pinned in `toolchain.json`:
 
 ```bash
 swift test --package-path Packages/DialShotKit
