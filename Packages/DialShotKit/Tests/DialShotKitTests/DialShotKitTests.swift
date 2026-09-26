@@ -8,9 +8,9 @@ struct DialShotKitTests {
         #expect(DialShotKit.domain == "DialShotKit")
     }
 
-    @Test("milestone marker is set for M0")
+    @Test("milestone marker is set for M1")
     func milestoneMarker() {
-        #expect(DialShotKit.milestone == "M0-skeleton")
+        #expect(DialShotKit.milestone == "M1-domain-engine")
     }
 
     @Test("skeleton exposes no stored state beyond constants")
