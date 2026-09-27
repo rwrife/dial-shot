@@ -32,10 +32,12 @@ A pure-Swift package with no UIKit dependency:
 
 GRDB over app-private SQLite:
 
-- Forward-only schema migrations.
-- Append-only saved shots; corrections create replacement records rather than rewriting historical truth.
-- Repository protocols with in-memory fakes.
-- Fixture database regenerated deterministically and checked in for migration tests.
+- Forward-only schema migrations (`v1-initial-schema`, `v2-query-indexes`), enforced with `PRAGMA foreign_keys = ON`.
+- `BeanRepository`, `GrinderRepository`, `BasketRepository`, `RecipeRepository`, `ShotRepository` protocols, each with a SQLite-backed implementation and an in-memory test double exercised by a shared contract test suite.
+- Immutable shot attempts: re-saving an existing id with different values is rejected (`DialShotStoreError.immutableShotConflict`); corrections create replacement records rather than rewriting historical truth.
+- `ON DELETE CASCADE` from bean bags to their recipes and shots; `ON DELETE RESTRICT` on grinder/basket profiles still referenced by a recipe.
+- Suggested adjustments (`DialInEngine.suggest(for:)`) are computed once at save time and persisted alongside the shot so the stored rationale never changes retroactively.
+- A committed, deterministic SQLite fixture (`Packages/DialShotStore/Tests/DialShotStoreTests/Fixtures/v1_fixture.sqlite`) is verified against the current migrations and asserted record-for-record in `FixtureDatabaseTests`.
 
 ### DialShot app
 

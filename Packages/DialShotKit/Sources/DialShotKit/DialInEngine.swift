@@ -39,7 +39,10 @@ public struct Adjustment: Codable, Equatable, Sendable {
     public let rule: AdjustmentRule
     public let rationale: String
 
-    init(action: AdjustmentAction, rule: AdjustmentRule) {
+    /// Rehydrates an adjustment; the rationale always comes from the rule
+    /// table itself, so a persisted row cannot smuggle a mismatched rationale
+    /// into the domain layer.
+    public init(action: AdjustmentAction, rule: AdjustmentRule) {
         self.action = action
         self.rule = rule
         rationale = rule.rationale

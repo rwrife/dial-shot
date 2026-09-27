@@ -109,6 +109,9 @@ phase="domain_tests"
 xcrun swift test \
   --package-path Packages/DialShotKit \
   2>&1 | tee "$artifact_dir/domain-tests.log"
+xcrun swift test \
+  --package-path Packages/DialShotStore \
+  2>&1 | tee -a "$artifact_dir/domain-tests.log"
 
 phase="app_build"
 xcodebuild build \

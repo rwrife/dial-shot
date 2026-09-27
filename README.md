@@ -66,23 +66,24 @@ All records live in an app-private local SQLite database. Export happens only af
 
 ## Status
 
-Native iPhone skeleton and deterministic domain engine landed: `DialShot.xcodeproj` (app + UI-test targets, bundle id `com.infinityball.dialshot`, `TARGETED_DEVICE_FAMILY = 1`), the pure-Swift `Packages/DialShotKit` package (immutable shot/recipe models, decimal-exact ratio math, and the bounded, explainable `DialInEngine` rule table), and CI that pins Xcode 26.0.1 (17A400) / iOS SDK 26.0, asserts iPhone-only on the built app, and enforces the empty network allowlist. See [docs/bootstrap-evidence.md](docs/bootstrap-evidence.md) for what is host-verified versus CI-gated. No persistence, product journeys, timer UI, archive, TestFlight binary, iPhone Duo compatibility evidence, or connected-device support exists yet.
+Native iPhone skeleton, deterministic domain engine, and local persistence layer landed: `DialShot.xcodeproj` (app + UI-test targets, bundle id `com.infinityball.dialshot`, `TARGETED_DEVICE_FAMILY = 1`), the pure-Swift `Packages/DialShotKit` package (immutable shot/recipe models, decimal-exact ratio math, and the bounded, explainable `DialInEngine` rule table), the GRDB-backed `Packages/DialShotStore` package (forward-only migrations, `BeanRepository`/`GrinderRepository`/`BasketRepository`/`RecipeRepository`/`ShotRepository` protocols with both SQLite and in-memory implementations, relational-integrity/cascade tests, and a committed regression fixture database), and CI that pins Xcode 26.0.1 (17A400) / iOS SDK 26.0, asserts iPhone-only on the built app, and enforces the empty network allowlist. See [docs/bootstrap-evidence.md](docs/bootstrap-evidence.md) for what is host-verified versus CI-gated. No product journeys, timer UI, archive, TestFlight binary, iPhone Duo compatibility evidence, or connected-device support exists yet.
 
 ## Milestones
 
 1. Native iPhone skeleton, pure-Swift domain package, and exact toolchain gates.
 2. Domain models, decimal-safe ratio arithmetic, and deterministic explainable dial-in engine.
-3. Local persistence and fixture database.
+3. Local persistence and fixture database. ✅
 4. Timer and shot-capture vertical slice.
 5. Accessible history/comparison UI and future dual-screen seam.
 6. Backup/export, privacy audit, and evidence-gated TestFlight release.
 
-## Development quickstart
+## Local development
 
-Run the pure-Swift package suite on any supported Swift 6 host. Run the native app test only on an Apple host with the exact toolchain pinned in `toolchain.json`:
+Run the pure-Swift package suites on any supported Swift 6 host (GRDB needs `libsqlite3-dev` on Linux). Run the native app test only on an Apple host with the exact toolchain pinned in `toolchain.json`:
 
 ```bash
 swift test --package-path Packages/DialShotKit
+swift test --package-path Packages/DialShotStore
 xcodebuild -project DialShot.xcodeproj -scheme DialShot -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
 
