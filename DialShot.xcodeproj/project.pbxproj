@@ -7,9 +7,12 @@
 
 /* Begin PBXBuildFile section */
 		A10000000000000000000101 /* DialShotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000201 /* DialShotApp.swift */; };
-		A10000000000000000000102 /* BootstrapHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000202 /* BootstrapHomeView.swift */; };
 		A10000000000000000000103 /* DialShotLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000203 /* DialShotLaunchTests.swift */; };
 		A10000000000000000000104 /* DialShotKit in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000801 /* DialShotKit */; };
+		A10000000000000000000105 /* ShotWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000206 /* ShotWorkspaceView.swift */; };
+		A10000000000000000000106 /* ShotPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000207 /* ShotPersistence.swift */; };
+		A10000000000000000000107 /* DialShotStore in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000803 /* DialShotStore */; };
+		A10000000000000000000108 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000208 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,17 +27,19 @@
 
 /* Begin PBXFileReference section */
 		A10000000000000000000201 /* DialShotApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialShotApp.swift; sourceTree = "<group>"; };
-		A10000000000000000000202 /* BootstrapHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootstrapHomeView.swift; sourceTree = "<group>"; };
 		A10000000000000000000203 /* DialShotLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialShotLaunchTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000204 /* DialShot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DialShot.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000205 /* DialShotUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DialShotUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000206 /* ShotWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotWorkspaceView.swift; sourceTree = "<group>"; };
+		A10000000000000000000207 /* ShotPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotPersistence.swift; sourceTree = "<group>"; };
+		A10000000000000000000208 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A10000000000000000000401 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
-			files = (A10000000000000000000104 /* DialShotKit in Frameworks */,);
+			files = (A10000000000000000000104 /* DialShotKit in Frameworks */, A10000000000000000000107 /* DialShotStore in Frameworks */,);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A10000000000000000000402 /* Frameworks */ = {
@@ -59,7 +64,9 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000201 /* DialShotApp.swift */,
-				A10000000000000000000202 /* BootstrapHomeView.swift */,
+				A10000000000000000000206 /* ShotWorkspaceView.swift */,
+				A10000000000000000000207 /* ShotPersistence.swift */,
+				A10000000000000000000208 /* PrivacyInfo.xcprivacy */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -93,7 +100,7 @@
 			buildRules = ();
 			dependencies = ();
 			name = DialShot;
-			packageProductDependencies = (A10000000000000000000801 /* DialShotKit */,);
+			packageProductDependencies = (A10000000000000000000801 /* DialShotKit */, A10000000000000000000803 /* DialShotStore */,);
 			productName = DialShot;
 			productReference = A10000000000000000000204 /* DialShot.app */;
 			productType = "com.apple.product-type.application";
@@ -134,7 +141,7 @@
 			knownRegions = (en, Base,);
 			mainGroup = A10000000000000000000500;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (A10000000000000000000800 /* XCLocalSwiftPackageReference "Packages/DialShotKit" */,);
+			packageReferences = (A10000000000000000000800 /* XCLocalSwiftPackageReference "Packages/DialShotKit" */, A10000000000000000000802 /* XCLocalSwiftPackageReference "Packages/DialShotStore" */,);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A10000000000000000000503 /* Products */;
 			projectDirPath = "";
@@ -147,7 +154,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A10000000000000000000703 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+		A10000000000000000000703 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000108 /* PrivacyInfo.xcprivacy in Resources */,); runOnlyForDeploymentPostprocessing = 0;};
 		A10000000000000000000704 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
 /* End PBXResourcesBuildPhase section */
 
@@ -157,7 +164,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000101 /* DialShotApp.swift in Sources */,
-				A10000000000000000000102 /* BootstrapHomeView.swift in Sources */,
+				A10000000000000000000105 /* ShotWorkspaceView.swift in Sources */,
+				A10000000000000000000106 /* ShotPersistence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,10 +266,12 @@
 
 /* Begin XCLocalSwiftPackageReference section */
 		A10000000000000000000800 /* XCLocalSwiftPackageReference "Packages/DialShotKit" */ = {isa = XCLocalSwiftPackageReference; relativePath = Packages/DialShotKit;};
+		A10000000000000000000802 /* XCLocalSwiftPackageReference "Packages/DialShotStore" */ = {isa = XCLocalSwiftPackageReference; relativePath = Packages/DialShotStore;};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		A10000000000000000000801 /* DialShotKit */ = {isa = XCSwiftPackageProductDependency; productName = DialShotKit;};
+		A10000000000000000000803 /* DialShotStore */ = {isa = XCSwiftPackageProductDependency; productName = DialShotStore;};
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A10000000000000000000000 /* Project object */;
