@@ -66,12 +66,14 @@ struct ShotWorkspaceView: View {
     private var controlDock: some View {
         VStack(spacing: 8) {
             if capture?.timer.phase == .running, capture?.timer.firstDropSeconds == nil {
-                Button("First drop") {
+                Button {
                     _ = capture?.markFirstDrop()
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                } label: {
+                    Text("First drop")
+                        .font(.title3.bold())
+                        .frame(maxWidth: .infinity, minHeight: 72)
                 }
-                .font(.title3.bold())
-                .frame(maxWidth: .infinity, minHeight: 72)
                 .buttonStyle(.bordered)
                 .tint(.orange)
                 .accessibilityLabel("Mark first drop")
