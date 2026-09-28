@@ -4,7 +4,7 @@ import SwiftUI
 struct DialShotApp: App {
     var body: some Scene {
         WindowGroup {
-            BootstrapHomeView()
+            ShotWorkspaceView()
         }
     }
 }
