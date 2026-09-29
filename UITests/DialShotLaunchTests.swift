@@ -86,12 +86,16 @@ extension DialShotLaunchTests {
         recordShot(app, yield: "34")
         recordShot(app, yield: "38")
         app.buttons["history.open"].tap()
-        let rows = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.shot."))
+        let rowPredicate = NSPredicate(format: "identifier BEGINSWITH %@", "history.shot.")
+        let rows = app.buttons.matching(rowPredicate)
+        var attempts = 0
+        while rows.count < 2 && attempts < 5 {
+            app.swipeUp()
+            attempts += 1
+        }
+        XCTAssertEqual(rows.count, 2)
         let first = rows.element(boundBy: 0)
         let second = rows.element(boundBy: 1)
-        scrollUntilVisible(first, in: app)
-        XCTAssertEqual(rows.count, 2)
         first.tap()
         scrollUntilVisible(second, in: app)
         second.tap()
