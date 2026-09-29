@@ -13,6 +13,7 @@
 		A10000000000000000000106 /* ShotPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000207 /* ShotPersistence.swift */; };
 		A10000000000000000000107 /* DialShotStore in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000803 /* DialShotStore */; };
 		A10000000000000000000108 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000208 /* PrivacyInfo.xcprivacy */; };
+		A10000000000000000000109 /* BeanHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000209 /* BeanHistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -33,6 +34,7 @@
 		A10000000000000000000206 /* ShotWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotWorkspaceView.swift; sourceTree = "<group>"; };
 		A10000000000000000000207 /* ShotPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotPersistence.swift; sourceTree = "<group>"; };
 		A10000000000000000000208 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A10000000000000000000209 /* BeanHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeanHistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +68,7 @@
 				A10000000000000000000201 /* DialShotApp.swift */,
 				A10000000000000000000206 /* ShotWorkspaceView.swift */,
 				A10000000000000000000207 /* ShotPersistence.swift */,
+				A10000000000000000000209 /* BeanHistoryView.swift */,
 				A10000000000000000000208 /* PrivacyInfo.xcprivacy */,
 			);
 			path = App;
@@ -166,6 +169,7 @@
 				A10000000000000000000101 /* DialShotApp.swift in Sources */,
 				A10000000000000000000105 /* ShotWorkspaceView.swift in Sources */,
 				A10000000000000000000106 /* ShotPersistence.swift in Sources */,
+				A10000000000000000000109 /* BeanHistoryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

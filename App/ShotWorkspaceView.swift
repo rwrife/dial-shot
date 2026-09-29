@@ -23,6 +23,12 @@ struct ShotWorkspaceView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    if let persistence {
+                        NavigationLink("Beans & history") {
+                            BeanHistoryView(persistence: persistence)
+                        }
+                        .accessibilityIdentifier("history.open")
+                    }
                     Text("Dose \(doseText) g · Target \(targetText) g")
                         .font(.headline)
                         .accessibilityIdentifier("recipe.summary")
@@ -61,6 +67,12 @@ struct ShotWorkspaceView: View {
             }
         }
         .task { openStore() }
+        .onAppear {
+            if let persistence, capture?.timer.phase == .idle,
+               capture?.recipe != persistence.recipe {
+                capture = ShotCapture(recipe: persistence.recipe)
+            }
+        }
     }
 
     private var controlDock: some View {

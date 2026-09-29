@@ -81,10 +81,24 @@ public enum DialShotDatabaseMigrator {
             """)
         }
 
+        migrator.registerMigration("v3-history-memory") { db in
+            try db.execute(sql: """
+                ALTER TABLE shot_attempt ADD COLUMN grinderSettingLabel TEXT;
+                CREATE TABLE bean_active_recipe (
+                    beanId TEXT PRIMARY KEY NOT NULL REFERENCES bean_bag(id) ON DELETE CASCADE,
+                    recipeId TEXT NOT NULL REFERENCES recipe(id) ON DELETE CASCADE
+                );
+                CREATE TABLE app_workspace_state (
+                    key TEXT PRIMARY KEY NOT NULL,
+                    value TEXT NOT NULL
+                );
+            """)
+        }
+
         return migrator
     }
 
-    public static let identifiers = ["v1-initial-schema", "v2-query-indexes"]
+    public static let identifiers = ["v1-initial-schema", "v2-query-indexes", "v3-history-memory"]
 }
 
 /// Creates a GRDB queue configured for strict local relational integrity.

@@ -22,7 +22,11 @@ struct FixtureDatabaseTests {
 
         var configuration = Configuration()
         configuration.foreignKeysEnabled = true
-        return try DatabaseQueue(path: workingCopy.path, configuration: configuration)
+        let queue = try DatabaseQueue(path: workingCopy.path, configuration: configuration)
+        // Test fixtures may lag one migration behind HEAD; bring the working
+        // copy to current schema so readers can decode optional newer columns.
+        try DialShotDatabaseMigrator.migrator.migrate(queue)
+        return queue
     }
 
     @Test("committed fixture migrates cleanly to the current schema head")
