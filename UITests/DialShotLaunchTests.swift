@@ -40,8 +40,12 @@ final class DialShotLaunchTests: XCTestCase {
         app.buttons["review.save"].tap()
         XCTAssertTrue(app.staticTexts["Shot saved on this iPhone."].waitForExistence(timeout: 5))
         app.buttons["history.open"].tap()
+        let savedRow = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.shot."))
+            .firstMatch
+        scrollUntilVisible(savedRow, in: app)
+        XCTAssertTrue(savedRow.exists)
         XCTAssertFalse(app.descendants(matching: .any)["history.empty"].exists)
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.shot.")).firstMatch.exists)
     }
 
     @MainActor
@@ -68,8 +72,10 @@ extension DialShotLaunchTests {
         XCTAssertTrue(app.textFields["history.beanSearch"].exists)
         XCTAssertTrue(app.textFields["history.grinderSearch"].exists)
         XCTAssertTrue(app.buttons["history.verdict"].exists)
-        XCTAssertTrue(app.buttons["history.compare"].exists)
-        XCTAssertFalse(app.buttons["history.compare"].isEnabled)
+        let compare = app.buttons["history.compare"]
+        scrollUntilVisible(compare, in: app)
+        XCTAssertTrue(compare.exists)
+        XCTAssertFalse(compare.isEnabled)
     }
 
     @MainActor
@@ -80,11 +86,17 @@ extension DialShotLaunchTests {
         recordShot(app, yield: "34")
         recordShot(app, yield: "38")
         app.buttons["history.open"].tap()
-        let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.shot."))
+        let rows = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.shot."))
+        let first = rows.element(boundBy: 0)
+        let second = rows.element(boundBy: 1)
+        scrollUntilVisible(first, in: app)
         XCTAssertEqual(rows.count, 2)
-        rows.element(boundBy: 0).tap()
-        rows.element(boundBy: 1).tap()
+        first.tap()
+        scrollUntilVisible(second, in: app)
+        second.tap()
         let compare = app.buttons["history.compare"]
+        scrollUpUntilVisible(compare, in: app)
         XCTAssertTrue(compare.isEnabled)
         compare.tap()
         XCTAssertTrue(app.descendants(matching: .any)["comparison.view"].waitForExistence(timeout: 5))
@@ -115,6 +127,26 @@ extension DialShotLaunchTests {
         app.launch()
         app.buttons["history.open"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["bean.activeRecipe"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.descendants(matching: .any)["history.empty"].exists)
+        let empty = app.descendants(matching: .any)["history.empty"]
+        scrollUntilVisible(empty, in: app)
+        XCTAssertTrue(empty.exists)
+    }
+}
+
+extension DialShotLaunchTests {
+    private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 5) {
+        var attempts = 0
+        while !element.isHittable && attempts < maxSwipes {
+            app.swipeUp()
+            attempts += 1
+        }
+    }
+
+    private func scrollUpUntilVisible(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 5) {
+        var attempts = 0
+        while !element.isHittable && attempts < maxSwipes {
+            app.swipeDown()
+            attempts += 1
+        }
     }
 }
