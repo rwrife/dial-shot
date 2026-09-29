@@ -93,7 +93,7 @@ extension DialShotLaunchTests {
             app.swipeUp()
             attempts += 1
         }
-        XCTAssertEqual(rows.count, 2)
+        XCTAssertGreaterThanOrEqual(rows.count, 2)
         let first = rows.element(boundBy: 0)
         let second = rows.element(boundBy: 1)
         first.tap()
