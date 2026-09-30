@@ -59,7 +59,7 @@ Current implementation remains a standard iPhone app with iPad support disabled.
 2. **Domain engine** — implement models, units, ratios, timer reducer, recipe snapshots, and deterministic rule engine with exhaustive fixtures.
 3. **Persistence** — add GRDB migrations, repositories, fixture database, query boundaries, and storage tests.
 4. **Capture workflow** — build profile/recipe setup and the accessible one-thumb timer through review/save.
-5. **Comparison and layout** — ship history, per-bean recipe memory, adjustment rationale, accessible charts/tables, and `ShotWorkspaceLayout` continuity tests.
+5. **Comparison and layout** — history, per-bean active recipe memory, chronological trend, filtering, and accessible two-shot comparison are implemented for issue #5. `ShotWorkspaceLayout` and dual-screen continuity remain future work.
 6. **Ownership and release** — versioned backup/restore preview, CSV export, privacy checks, archive/upload workflow, and App Store metadata.
 
 ## Testing strategy

@@ -113,6 +113,9 @@ public final class InMemoryBasketRepository: BasketRepository, @unchecked Sendab
 public final class InMemoryRecipeRepository: RecipeRepository, @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [UUID: RecipeRecord] = [:]
+    private var activeIDs: [BeanBag.ID: UUID] = [:]
+    private var selectedWorkspaceBean: BeanBag.ID?
+
 
     public init(initial: [RecipeRecord] = []) {
         for item in initial {
@@ -145,10 +148,32 @@ public final class InMemoryRecipeRepository: RecipeRepository, @unchecked Sendab
         return filtered.sorted { $0.createdAt > $1.createdAt }
     }
 
+    public func setActive(recipeID: UUID, for beanID: BeanBag.ID) throws {
+        lock.lock(); defer { lock.unlock() }
+        guard storage[recipeID]?.snapshot.beanID == beanID else { throw DialShotStoreError.missingReference("recipe") }
+        activeIDs[beanID] = recipeID
+    }
+
+    public func active(for beanID: BeanBag.ID) throws -> RecipeRecord? {
+        lock.lock(); defer { lock.unlock() }
+        return activeIDs[beanID].flatMap { storage[$0] }
+    }
+
+    public func setSelectedWorkspaceBeanID(_ beanID: BeanBag.ID?) throws {
+        lock.lock(); defer { lock.unlock() }
+        selectedWorkspaceBean = beanID
+    }
+
+    public func selectedWorkspaceBeanID() throws -> BeanBag.ID? {
+        lock.lock(); defer { lock.unlock() }
+        return selectedWorkspaceBean
+    }
+
     public func delete(id: UUID) throws {
         lock.lock()
         defer { lock.unlock() }
         storage.removeValue(forKey: id)
+        activeIDs = activeIDs.filter { $0.value != id }
     }
 }
 

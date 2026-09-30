@@ -281,6 +281,44 @@ public final class SQLiteRecipeRepository: RecipeRepository, Sendable {
         }
     }
 
+    public func setActive(recipeID: UUID, for beanID: BeanBag.ID) throws {
+        try writer.write { db in
+            let found = try Int.fetchOne(db, sql: "SELECT 1 FROM recipe WHERE id = ? AND beanId = ?", arguments: [recipeID.uuidString, beanID.rawValue.uuidString])
+            guard found != nil else { throw DialShotStoreError.missingReference("recipe") }
+            try db.execute(sql: "INSERT INTO bean_active_recipe (beanId, recipeId) VALUES (?, ?) ON CONFLICT(beanId) DO UPDATE SET recipeId = excluded.recipeId", arguments: [beanID.rawValue.uuidString, recipeID.uuidString])
+        }
+    }
+
+    public func active(for beanID: BeanBag.ID) throws -> RecipeRecord? {
+        try writer.read { db in
+            guard let row = try Row.fetchOne(db, sql: "SELECT recipe.* FROM recipe JOIN bean_active_recipe ON recipe.id = bean_active_recipe.recipeId WHERE bean_active_recipe.beanId = ?", arguments: [beanID.rawValue.uuidString]) else { return nil }
+            return try Self.makeRecord(from: row)
+        }
+    }
+
+    public func setSelectedWorkspaceBeanID(_ beanID: BeanBag.ID?) throws {
+        try writer.write { db in
+            if let beanID {
+                let found = try Int.fetchOne(db, sql: "SELECT 1 FROM bean_bag WHERE id = ?", arguments: [beanID.rawValue.uuidString])
+                guard found != nil else { throw DialShotStoreError.missingReference("bean") }
+                try db.execute(
+                    sql: "INSERT INTO app_workspace_state (key, value) VALUES ('selectedBeanId', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                    arguments: [beanID.rawValue.uuidString]
+                )
+            } else {
+                try db.execute(sql: "DELETE FROM app_workspace_state WHERE key = 'selectedBeanId'")
+            }
+        }
+    }
+
+    public func selectedWorkspaceBeanID() throws -> BeanBag.ID? {
+        try writer.read { db in
+            guard let value = try String.fetchOne(db, sql: "SELECT value FROM app_workspace_state WHERE key = 'selectedBeanId'"),
+                  let uuid = UUID(uuidString: value) else { return nil }
+            return BeanBag.ID(rawValue: uuid)
+        }
+    }
+
     public func delete(id: UUID) throws {
         try writer.write { db in
             try db.execute(sql: "DELETE FROM recipe WHERE id = ?", arguments: [id.uuidString])
@@ -324,13 +362,14 @@ public final class SQLiteShotRepository: ShotRepository, Sendable {
 
     public func save(_ attempt: ShotAttempt, suggestion: DialInSuggestion?) throws {
         let finalSuggestion = suggestion ?? DialInEngine.suggest(for: attempt)
-        let incomingRecord = ShotRecord(attempt: attempt, suggestion: finalSuggestion)
         let (suggestionType, action, rule, rationale) = Self.encodeSuggestion(finalSuggestion)
 
         try writer.write { db in
+            let setting: String? = try String.fetchOne(db, sql: "SELECT settingLabel FROM grinder_profile WHERE id = ?", arguments: [attempt.recipe.grinderID.rawValue.uuidString])
+            let incomingRecord = ShotRecord(attempt: attempt, suggestion: finalSuggestion, grinderSettingLabel: setting)
             if let existingRow = try Row.fetchOne(db, sql: "SELECT * FROM shot_attempt WHERE id = ?", arguments: [attempt.id.uuidString]) {
                 let existingRecord = try Self.makeRecord(from: existingRow)
-                guard existingRecord == incomingRecord else {
+                guard existingRecord.attempt == incomingRecord.attempt, existingRecord.suggestion == incomingRecord.suggestion else {
                     throw DialShotStoreError.immutableShotConflict(attempt.id)
                 }
                 return
@@ -346,7 +385,7 @@ public final class SQLiteShotRepository: ShotRepository, Sendable {
                         tasteVerdict, flowVerdict, sensoryNotesJson,
                         suggestionType, suggestedAdjustmentAction,
                         suggestedAdjustmentRule, suggestedAdjustmentRationale,
-                        createdAt
+                        createdAt, grinderSettingLabel
                     ) VALUES (
                         :id, :beanId, :grinderId, :basketId, :recipeId,
                         :doseGrams, :targetYieldGrams, :targetTimeSeconds,
@@ -355,7 +394,7 @@ public final class SQLiteShotRepository: ShotRepository, Sendable {
                         :tasteVerdict, :flowVerdict, :sensoryNotesJson,
                         :suggestionType, :suggestedAdjustmentAction,
                         :suggestedAdjustmentRule, :suggestedAdjustmentRationale,
-                        :createdAt
+                        :createdAt, :grinderSettingLabel
                     )
                 """,
                 arguments: [
@@ -379,6 +418,7 @@ public final class SQLiteShotRepository: ShotRepository, Sendable {
                     "suggestedAdjustmentRule": rule,
                     "suggestedAdjustmentRationale": rationale,
                     "createdAt": attempt.createdAt.timeIntervalSinceReferenceDate,
+                    "grinderSettingLabel": setting,
                 ]
             )
         }
@@ -508,6 +548,6 @@ public final class SQLiteShotRepository: ShotRepository, Sendable {
             rationale: row["suggestedAdjustmentRationale"]
         )
 
-        return ShotRecord(attempt: attempt, suggestion: suggestion)
+        return ShotRecord(attempt: attempt, suggestion: suggestion, grinderSettingLabel: row["grinderSettingLabel"])
     }
 }

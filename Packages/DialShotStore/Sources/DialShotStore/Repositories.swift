@@ -24,12 +24,14 @@ public struct RecipeRecord: Codable, Equatable, Identifiable, Sendable {
 public struct ShotRecord: Codable, Equatable, Identifiable, Sendable {
     public let attempt: ShotAttempt
     public let suggestion: DialInSuggestion
+    public let grinderSettingLabel: String?
 
     public var id: UUID { attempt.id }
 
-    public init(attempt: ShotAttempt, suggestion: DialInSuggestion) {
+    public init(attempt: ShotAttempt, suggestion: DialInSuggestion, grinderSettingLabel: String? = nil) {
         self.attempt = attempt
         self.suggestion = suggestion
+        self.grinderSettingLabel = grinderSettingLabel
     }
 }
 
@@ -65,6 +67,10 @@ public protocol RecipeRepository: Sendable {
     func get(id: UUID) throws -> RecipeRecord?
     func list(beanID: BeanBag.ID?) throws -> [RecipeRecord]
     func delete(id: UUID) throws
+    func setActive(recipeID: UUID, for beanID: BeanBag.ID) throws
+    func active(for beanID: BeanBag.ID) throws -> RecipeRecord?
+    func setSelectedWorkspaceBeanID(_ beanID: BeanBag.ID?) throws
+    func selectedWorkspaceBeanID() throws -> BeanBag.ID?
 }
 
 /// Persistence boundary for immutable shot attempts and their suggestions.

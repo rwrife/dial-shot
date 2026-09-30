@@ -66,7 +66,7 @@ All records live in an app-private local SQLite database. Export happens only af
 
 ## Status
 
-The native iPhone timer and shot-capture vertical slice is implemented: a monotonic `ProcessInfo.systemUptime` timer with injectable timestamps, first-drop marker, actual-yield entry, sensory and flow chips, pre-save review with the exact `DialInEngine` result, and save through `DialShotStore` to app-private Application Support SQLite. The pure-Swift kit and GRDB store have Linux-capable tests; the native screen and UI journey require an Apple runner for Xcode verification. The app retains bundle id `com.infinityball.dialshot` and iPhone-only `TARGETED_DEVICE_FAMILY = 1`. History/comparison, export, archive, TestFlight, and iPhone Duo support remain later milestones. See [docs/bootstrap-evidence.md](docs/bootstrap-evidence.md) for the earlier foundation evidence.
+The native iPhone timer and shot-capture vertical slice is implemented: a monotonic `ProcessInfo.systemUptime` timer with injectable timestamps, first-drop marker, actual-yield entry, sensory and flow chips, pre-save review with the exact `DialInEngine` result, and save through `DialShotStore` to app-private Application Support SQLite. The pure-Swift kit and GRDB store have Linux-capable tests; the native screen and UI journey require an Apple runner for Xcode verification. The app retains bundle id `com.infinityball.dialshot` and iPhone-only `TARGETED_DEVICE_FAMILY = 1`. Issue #5 history and comparison are implemented: the bean screen shows the selected bean's active recipe, chronological attempts, extraction-time and sensory-balance trends, and bean/grinder/date/taste filters. Two shots from the same bean can be compared with explicit difference and unknown labels; grinder settings are compared only within one grinder and are captured as historical user-authored text. SQLite v3 stores active recipe identity and shot-time grinder setting. Export, archive, TestFlight, and iPhone Duo support remain later milestones. See [docs/bootstrap-evidence.md](docs/bootstrap-evidence.md) for the earlier foundation evidence.
 
 ## Milestones
 
@@ -74,7 +74,7 @@ The native iPhone timer and shot-capture vertical slice is implemented: a monoto
 2. Domain models, decimal-safe ratio arithmetic, and deterministic explainable dial-in engine.
 3. Local persistence and fixture database. ✅
 4. Timer and shot-capture vertical slice. ✅
-5. Accessible history/comparison UI and future dual-screen seam.
+5. Accessible per-bean history, recipe memory, comparison, and trends. ✅ (future dual-screen seam deferred)
 6. Backup/export, privacy audit, and evidence-gated TestFlight release.
 
 ## Local development
