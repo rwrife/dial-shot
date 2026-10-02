@@ -1,3 +1,4 @@
+import DialShotKit
 import SwiftUI
 
 @main
