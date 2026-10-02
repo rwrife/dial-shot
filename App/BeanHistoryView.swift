@@ -2,7 +2,12 @@ import DialShotKit
 import DialShotStore
 import SwiftUI
 
+/// Issue #6: bean selection, comparison membership, and their filters are
+/// presentation-independent continuity state and live in the environment-level
+/// `ShotWorkspaceCoordinator`, so this screen can be rebuilt or moved to a
+/// different layout pane without losing what the user was inspecting.
 struct BeanHistoryView: View {
+    @Environment(ShotWorkspaceCoordinator.self) private var workspace
     let persistence: ShotPersistence
     @State private var beans: [BeanBag] = []
     @State private var shots: [HistoryShot] = []
@@ -16,7 +21,6 @@ struct BeanHistoryView: View {
     @State private var throughEnabled = false
     @State private var fromDate = Date()
     @State private var throughDate = Date()
-    @State private var selectedShotIDs: Set<UUID> = []
     @State private var showComparison = false
     @State private var error: String?
 
@@ -31,13 +35,14 @@ struct BeanHistoryView: View {
     }
 
     private var selectedShots: [HistoryShot] {
-        filtered.filter { selectedShotIDs.contains($0.id) }
+        filtered.filter { workspace.comparisonSelection.contains($0.id) }
     }
 
     var body: some View {
+        @Bindable var workspace = workspace
         List {
             Section("Bean") {
-                Picker("Bean", selection: $selectedBeanID) {
+                Picker("Bean", selection: $workspace.selectedBeanID) {
                     Text("All beans").tag(nil as BeanBag.ID?)
                     ForEach(beans) { bean in
                         Text(bean.name).tag(Optional(bean.id))
@@ -124,14 +129,14 @@ struct BeanHistoryView: View {
                             Text("\(shot.attempt.recipe.doseGrams) g in · \(shot.attempt.measuredYieldGrams) g out · \(shot.attempt.elapsedSeconds) s")
                             Text("Taste: \(tasteText(shot.attempt.observation.tasteVerdict))")
                             Text("Setting: \(shot.grinderSetting ?? "Not recorded")")
-                            Text(selectedShotIDs.contains(shot.id) ? "Selected for comparison" : "Select for comparison")
+                            Text(workspace.comparisonSelection.contains(shot.id) ? "Selected for comparison" : "Select for comparison")
                                 .font(.caption.bold())
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("\(shot.beanName), \(shot.attempt.elapsedSeconds) seconds, \(tasteText(shot.attempt.observation.tasteVerdict)), \(selectedShotIDs.contains(shot.id) ? "selected" : "not selected")")
-                    .accessibilityAddTraits(selectedShotIDs.contains(shot.id) ? [.isSelected] : [])
+                    .accessibilityLabel("\(shot.beanName), \(shot.attempt.elapsedSeconds) seconds, \(tasteText(shot.attempt.observation.tasteVerdict)), \(workspace.comparisonSelection.contains(shot.id) ? "selected" : "not selected")")
+                    .accessibilityAddTraits(workspace.comparisonSelection.contains(shot.id) ? [.isSelected] : [])
                     .accessibilityIdentifier("history.shot.\(shot.id.uuidString)")
                 }
             }
@@ -139,8 +144,9 @@ struct BeanHistoryView: View {
         }
         .navigationTitle("Beans & history")
         .onAppear(perform: load)
-        .onChange(of: selectedBeanID) { _, beanID in
-            selectedShotIDs.removeAll()
+        .onChange(of: workspace.selectedBeanID) { _, beanID in
+            selectedBeanID = beanID
+            workspace.clearComparisonSelection()
             do {
                 try persistence.selectBean(beanID)
                 try loadActiveRecipe()
@@ -152,7 +158,7 @@ struct BeanHistoryView: View {
             }
         }
         .onChange(of: filtered.map(\.id)) { _, visibleIDs in
-            selectedShotIDs.formIntersection(Set(visibleIDs))
+            workspace.pruneComparisonSelection(to: visibleIDs)
         }
         .sheet(isPresented: $showComparison) {
             if let comparison = try? ShotComparison(selectedShots) {
@@ -179,14 +185,14 @@ struct BeanHistoryView: View {
     }
 
     private func toggle(_ id: UUID) {
-        if selectedShotIDs.contains(id) { selectedShotIDs.remove(id) }
-        else if selectedShotIDs.count < 2 {
+        if workspace.comparisonSelection.contains(id) { workspace.comparisonSelection.remove(id) }
+        else if workspace.comparisonSelection.count < 2 {
             if let first = selectedShots.first,
                let next = shots.first(where: { $0.id == id }),
                first.attempt.recipe.beanID != next.attempt.recipe.beanID {
-                selectedShotIDs = [id]
+                workspace.comparisonSelection = [id]
             } else {
-                selectedShotIDs.insert(id)
+                workspace.comparisonSelection.insert(id)
             }
         }
     }
@@ -195,10 +201,11 @@ struct BeanHistoryView: View {
         do {
             beans = try persistence.beanList()
             shots = try persistence.history()
-            if selectedBeanID == nil, let remembered = persistence.selectedBeanID,
+            if workspace.selectedBeanID == nil, let remembered = persistence.workspaceBeanID,
                beans.contains(where: { $0.id == remembered }) {
-                selectedBeanID = remembered
+                workspace.selectedBeanID = remembered
             }
+            selectedBeanID = workspace.selectedBeanID
             try loadActiveRecipe()
             error = nil
         } catch { self.error = "Could not load history: \(error.localizedDescription)" }
@@ -274,5 +281,6 @@ private struct ShotComparisonView: View {
         .background(different == true ? Color.orange.opacity(0.15) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(name): \(value). \(different == true ? "Different" : different == nil ? "Comparison unknown" : "Same")")
+        .accessibilityIdentifier("comparison.row.\(name)")
     }
 }

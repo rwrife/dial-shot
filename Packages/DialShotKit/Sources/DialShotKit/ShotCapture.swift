@@ -3,7 +3,7 @@ import Foundation
 /// A monotonic shot clock. Passing `at` makes each transition deterministic in tests;
 /// live callers use the process uptime clock, which advances while the app is suspended.
 public struct ShotTimer: Sendable {
-    public enum Phase: Sendable { case idle, running, stopped }
+    public enum Phase: Equatable, Sendable { case idle, running, stopped }
 
     public private(set) var phase: Phase = .idle
     public private(set) var firstDropSeconds: Int?

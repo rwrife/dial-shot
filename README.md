@@ -38,9 +38,9 @@ The suggestion is a memory aid, not an objective quality verdict. Conflicting or
 
 ## iPhone Duo design target
 
-Dial Shot is a standard native iPhone app today. Native iPad support is disabled. The future iPhone Duo experience uses one display as a persistent, high-contrast timer/control surface while the other keeps the active recipe, prior shot, and adjustment rationale visible. Folding returns to a one-handed timer without losing timer state, active bean, draft measurements, or comparison selection.
+Dial Shot is a standard native iPhone app today. Native iPad support is disabled. The future iPhone Duo experience uses one display as a persistent, high-contrast timer/control surface while the other keeps the active recipe, prior shot comparison, and adjustment rationale visible. Folding returns to a one-handed timer without losing timer state, active bean, draft measurements, or comparison selection.
 
-`ShotWorkspaceLayout` will isolate layout policy from domain state. When Apple publishes supported dual-screen safe-region and posture APIs, that adapter can map the same timer and comparison panes onto native regions. No unavailable fold API is required now. Tablet layouts remain deferred and require explicit user opt-in.
+`ShotWorkspaceLayout` (in `DialShotKit`) isolates layout policy from domain state. Every on-screen content item resolves through it: standard displays are always `.compact` (single pane); the documented `.dualScreen` mode maps timer/capture controls to the primary display and recipe context, history access, comparison, and adjustment rationale to the context display. Continuity state — timer, active draft, yield input, selected bean, and comparison selection — lives in the environment-level `ShotWorkspaceCoordinator`, above the view hierarchy, so layout switches and view rebuilds cannot reset it. When Apple publishes supported dual-screen safe-region and posture APIs, only the capability probe and pane placement change; no unavailable fold API is used now. Tablet layouts remain deferred and require explicit user opt-in.
 
 ## Platform contract
 

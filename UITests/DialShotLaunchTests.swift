@@ -57,6 +57,58 @@ final class DialShotLaunchTests: XCTestCase {
         XCTAssertTrue(primary.waitForExistence(timeout: 10))
         XCTAssertGreaterThanOrEqual(primary.frame.height, 72)
     }
+
+    /// Issue #6: compact layout renders the timer, recipe summary, and
+    /// primary controls together on a standard iPhone display.
+    @MainActor
+    func testCompactWorkspaceShowsTimerRecipeAndControlsTogether() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-DialShotResetUITestStore"]
+        app.launch()
+        XCTAssertTrue(app.descendants(matching: .any)["timer.elapsed"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["recipe.summary"].exists)
+        XCTAssertTrue(app.buttons["timer.primary"].exists)
+    }
+
+    /// Issue #6: navigation rebuilds the view hierarchy; the environment-level
+    /// coordinator must keep the running timer and typed draft text intact.
+    @MainActor
+    func testNavigationRebuildKeepsRunningTimerAndDraftInput() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-DialShotResetUITestStore"]
+        app.launch()
+        let primary = app.buttons["timer.primary"]
+        XCTAssertTrue(primary.waitForExistence(timeout: 10))
+        primary.tap()
+        // Let the monotonic clock advance enough to distinguish "running"
+        // from "reset to zero" (this proves continuity, not exact timing).
+        Thread.sleep(forTimeInterval: 2.0)
+
+        app.buttons["history.open"].tap()
+        XCTAssertTrue(app.navigationBars["Beans & history"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.firstMatch.tap()
+
+        let timer = app.descendants(matching: .any)["timer.elapsed"]
+        XCTAssertTrue(timer.waitForExistence(timeout: 5))
+        let timerText = "\(timer.label)\(timer.value ?? "")"
+        XCTAssertFalse(timerText.contains("0:00"), "timer reset to zero across navigation: \(timerText)")
+        // Still running: the first-drop control remains available.
+        XCTAssertTrue(app.buttons["timer.firstDrop"].exists)
+
+        // Stop, type a draft yield, navigate again, return: text survives.
+        primary.tap()
+        let field = app.textFields["capture.yield"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("34")
+        app.buttons["Done"].tap()
+        app.buttons["history.open"].tap()
+        XCTAssertTrue(app.navigationBars["Beans & history"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.firstMatch.tap()
+        let returned = app.textFields["capture.yield"]
+        XCTAssertTrue(returned.waitForExistence(timeout: 5))
+        XCTAssertEqual(returned.value as? String, "34")
+    }
 }
 
 extension DialShotLaunchTests {
