@@ -5,7 +5,7 @@ import Foundation
 @MainActor
 final class ShotPersistence {
     private(set) var recipe: RecipeSnapshot
-    private(set) var selectedBeanID: BeanBag.ID?
+    private(set) var workspaceBeanID: BeanBag.ID?
     private let beans: SQLiteBeanRepository
     private let grinders: SQLiteGrinderRepository
     private let recipes: SQLiteRecipeRepository
@@ -47,13 +47,13 @@ final class ShotPersistence {
             let beanID = rememberedBean ?? latest.snapshot.beanID
             if let active = try recipes.active(for: beanID) {
                 recipe = active.snapshot
-                selectedBeanID = beanID
+                workspaceBeanID = beanID
             } else {
                 let chosen = (try recipes.list(beanID: beanID).first) ?? latest
                 try recipes.setActive(recipeID: chosen.id, for: chosen.snapshot.beanID)
                 try recipes.setSelectedWorkspaceBeanID(chosen.snapshot.beanID)
                 recipe = chosen.snapshot
-                selectedBeanID = chosen.snapshot.beanID
+                workspaceBeanID = chosen.snapshot.beanID
             }
         } else {
             let bean = BeanBag(name: "First bean")
@@ -75,7 +75,7 @@ final class ShotPersistence {
             try recipes.setActive(recipeID: starter.id, for: bean.id)
             try recipes.setSelectedWorkspaceBeanID(bean.id)
             recipe = snapshot
-            selectedBeanID = bean.id
+            workspaceBeanID = bean.id
         }
     }
 
@@ -89,7 +89,7 @@ final class ShotPersistence {
         try recipes.setActive(recipeID: record.id, for: record.snapshot.beanID)
         try recipes.setSelectedWorkspaceBeanID(record.snapshot.beanID)
         recipe = record.snapshot
-        selectedBeanID = record.snapshot.beanID
+        workspaceBeanID = record.snapshot.beanID
     }
 
     /// Selects a bean for capture only when it has a usable recipe. The history
@@ -99,12 +99,12 @@ final class ShotPersistence {
         if let active = try recipes.active(for: beanID) {
             try recipes.setSelectedWorkspaceBeanID(beanID)
             recipe = active.snapshot
-            selectedBeanID = beanID
+            workspaceBeanID = beanID
         } else if let latest = try recipes.list(beanID: beanID).first {
             try recipes.setActive(recipeID: latest.id, for: beanID)
             try recipes.setSelectedWorkspaceBeanID(beanID)
             recipe = latest.snapshot
-            selectedBeanID = beanID
+            workspaceBeanID = beanID
         }
     }
 

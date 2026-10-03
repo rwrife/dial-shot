@@ -2,11 +2,16 @@ import DialShotKit
 import SwiftUI
 import UIKit
 
+/// Issue #6: every piece of content is placed through `ShotWorkspaceLayout`
+/// for the coordinator's current mode, and all continuity state (timer,
+/// draft, yield text, comparison selection) lives in the environment-level
+/// `ShotWorkspaceCoordinator`, not in view storage. Standard iPhones resolve
+/// to `.compact`; a future dual-screen adapter changes only how contents map
+/// to panes here — never the state itself.
 struct ShotWorkspaceView: View {
+    @Environment(ShotWorkspaceCoordinator.self) private var workspace
     @State private var persistence: ShotPersistence?
-    @State private var capture: ShotCapture?
     @State private var review: ShotReview?
-    @State private var yieldText = ""
     @State private var message: String?
     @FocusState private var yieldFocused: Bool
     @ScaledMetric(relativeTo: .largeTitle) private var timerFontSize = 72
@@ -23,34 +28,8 @@ struct ShotWorkspaceView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    if let persistence {
-                        NavigationLink("Beans & history") {
-                            BeanHistoryView(persistence: persistence)
-                        }
-                        .accessibilityIdentifier("history.open")
-                    }
-                    Text("Dose \(doseText) g · Target \(targetText) g")
-                        .font(.headline)
-                        .accessibilityIdentifier("recipe.summary")
-
-                    TimelineView(.periodic(from: .now, by: 0.25)) { _ in
-                        Text(timeText)
-                            .font(.system(size: timerFontSize, weight: .bold, design: .rounded).monospacedDigit())
-                            .minimumScaleFactor(0.55)
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity)
-                            .accessibilityLabel("Shot time, \(timeText)")
-                            .accessibilityIdentifier("timer.elapsed")
-                    }
-
-                    if capture?.timer.phase == .stopped {
-                        captureForm
-                    }
-
-                    if let message {
-                        Text(message)
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("capture.message")
+                    ForEach(ShotWorkspaceLayout.visibleContents(mode: workspace.layoutMode, pane: .primary), id: \.self) { content in
+                        workspaceContent(content)
                     }
                 }
                 .padding(20)
@@ -67,19 +46,60 @@ struct ShotWorkspaceView: View {
             }
         }
         .task { openStore() }
-        .onAppear {
-            if let persistence, capture?.timer.phase == .idle,
-               capture?.recipe != persistence.recipe {
-                capture = ShotCapture(recipe: persistence.recipe)
+        .onAppear { syncDraftWithRecipe() }
+    }
+
+    /// The seam: each `WorkspaceContent` resolves to exactly one on-screen
+    /// view here. `captureControls` renders in the dock below because it is
+    /// primary-pane chrome in every mode.
+    @ViewBuilder
+    private func workspaceContent(_ content: WorkspaceContent) -> some View {
+        switch content {
+        case .shotHistoryAccess:
+            if let persistence {
+                NavigationLink("Beans & history") {
+                    BeanHistoryView(persistence: persistence)
+                }
+                .accessibilityIdentifier("history.open")
             }
+        case .recipeContext:
+            Text("Dose \(doseText) g · Target \(targetText) g")
+                .font(.headline)
+                .accessibilityIdentifier("recipe.summary")
+        case .shotTimer:
+            TimelineView(.periodic(from: .now, by: 0.25)) { _ in
+                Text(timeText)
+                    .font(.system(size: timerFontSize, weight: .bold, design: .rounded).monospacedDigit())
+                    .minimumScaleFactor(0.55)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel("Shot time, \(timeText)")
+                    .accessibilityIdentifier("timer.elapsed")
+            }
+        case .captureForm:
+            if workspace.draft?.timer.phase == .stopped {
+                captureForm
+            }
+        case .adjustmentRationale:
+            if let review {
+                reviewPanel(review)
+            }
+        case .shotMessage:
+            if let message {
+                Text(message)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("capture.message")
+            }
+        case .captureControls:
+            EmptyView()
         }
     }
 
     private var controlDock: some View {
         VStack(spacing: 8) {
-            if capture?.timer.phase == .running, capture?.timer.firstDropSeconds == nil {
+            if workspace.draft?.timer.phase == .running, workspace.draft?.timer.firstDropSeconds == nil {
                 Button {
-                    _ = capture?.markFirstDrop()
+                    _ = workspace.draft?.markFirstDrop()
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 } label: {
                     Text("First drop")
@@ -102,7 +122,7 @@ struct ShotWorkspaceView: View {
             .foregroundStyle(.white)
             .accessibilityLabel(primaryTitle + " shot")
             .accessibilityIdentifier("timer.primary")
-            .disabled(capture == nil || capture?.timer.phase == .stopped)
+            .disabled(workspace.draft == nil || workspace.draft?.timer.phase == .stopped)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
@@ -111,22 +131,28 @@ struct ShotWorkspaceView: View {
 
     private var captureForm: some View {
         VStack(alignment: .leading, spacing: 20) {
-            TextField("Actual yield (g)", text: $yieldText)
-                .keyboardType(.decimalPad)
-                .textFieldStyle(.roundedBorder)
-                .font(.title3)
-                .focused($yieldFocused)
-                .accessibilityLabel("Actual yield in grams")
-                .accessibilityIdentifier("capture.yield")
-                .onChange(of: yieldText) { _, _ in review = nil }
+            TextField(
+                "Actual yield (g)",
+                text: Binding(
+                    get: { workspace.yieldInputText },
+                    set: { workspace.yieldInputText = $0 }
+                )
+            )
+            .keyboardType(.decimalPad)
+            .textFieldStyle(.roundedBorder)
+            .font(.title3)
+            .focused($yieldFocused)
+            .accessibilityLabel("Actual yield in grams")
+            .accessibilityIdentifier("capture.yield")
+            .onChange(of: workspace.yieldInputText) { _, _ in review = nil }
 
             Text("Taste and flow").font(.title2.bold())
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 8)], spacing: 8) {
                 ForEach(noteChoices.indices, id: \.self) { index in
                     let (note, title) = noteChoices[index]
-                    chip(title, selected: capture?.notes.contains(note) == true, id: "note.\(note.rawValue)") {
-                        if capture?.notes.contains(note) == true { capture?.notes.remove(note) }
-                        else { capture?.notes.insert(note) }
+                    chip(title, selected: workspace.draft?.notes.contains(note) == true, id: "note.\(note.rawValue)") {
+                        if workspace.draft?.notes.contains(note) == true { workspace.draft?.notes.remove(note) }
+                        else { workspace.draft?.notes.insert(note) }
                         review = nil
                     }
                 }
@@ -135,8 +161,13 @@ struct ShotWorkspaceView: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 8)], spacing: 8) {
                 ForEach(flowChoices.indices, id: \.self) { index in
                     let (flow, title) = flowChoices[index]
-                    chip(title, selected: capture?.flowVerdict == flow, id: "flow.\(flow.rawValue)") {
-                        capture?.flowVerdict = capture?.flowVerdict == flow ? nil : flow
+                    chip(title, selected: workspace.draft?.flowVerdict == flow, id: "flow.\(flow.rawValue)") {
+                        // Read before mutate: `draft` is an @Observable class
+                        // property, so a combined read-modify-write keeps the
+                        // setter's exclusive access open while the expression
+                        // reads it back — a fatal exclusivity conflict.
+                        let current = workspace.draft?.flowVerdict
+                        workspace.draft?.flowVerdict = current == flow ? nil : flow
                         review = nil
                     }
                 }
@@ -147,14 +178,9 @@ struct ShotWorkspaceView: View {
                 .frame(minHeight: 44)
                 .accessibilityIdentifier("capture.review")
 
-            if let review {
-                reviewPanel(review)
-            }
-
             Button("Discard shot") {
-                capture = persistence.map { ShotCapture(recipe: $0.recipe) }
+                if let persistence { workspace.installDraft(recipe: persistence.recipe) }
                 review = nil
-                yieldText = ""
                 message = nil
             }
             .frame(minHeight: 44)
@@ -217,7 +243,7 @@ struct ShotWorkspaceView: View {
     }
 
     private var primaryTitle: String {
-        switch capture?.timer.phase {
+        switch workspace.draft?.timer.phase {
         case .running: "Stop"
         case .stopped: "Stopped"
         default: "Start"
@@ -225,38 +251,38 @@ struct ShotWorkspaceView: View {
     }
 
     private var primaryTint: Color {
-        switch capture?.timer.phase {
+        switch workspace.draft?.timer.phase {
         case .running: .red
         default: .black
         }
     }
 
-    private var doseText: String { capture?.recipe.doseGrams.description ?? "18" }
-    private var targetText: String { capture?.recipe.targetYieldGrams.description ?? "36" }
+    private var doseText: String { (workspace.draft?.recipe ?? persistence?.recipe)?.doseGrams.description ?? "18" }
+    private var targetText: String { (workspace.draft?.recipe ?? persistence?.recipe)?.targetYieldGrams.description ?? "36" }
     private var timeText: String {
-        guard var draft = capture else { return "0:00" }
+        guard var draft = workspace.draft else { return "0:00" }
         let seconds = draft.elapsedSeconds()
         return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 
     private func primaryAction() {
-        if capture?.timer.phase == .idle {
-            capture?.start()
+        if workspace.draft?.timer.phase == .idle {
+            workspace.draft?.start()
             message = nil
-        } else if capture?.timer.phase == .running {
-            capture?.stop()
+        } else if workspace.draft?.timer.phase == .running {
+            workspace.draft?.stop()
         }
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }
 
     private func prepareReview() {
-        guard let grams = Decimal(string: yieldText, locale: .current) else {
+        guard let grams = Decimal(string: workspace.yieldInputText, locale: .current) else {
             message = "Enter a valid actual yield."
             return
         }
-        capture?.measuredYieldGrams = grams
+        workspace.draft?.measuredYieldGrams = grams
         do {
-            review = try capture?.review()
+            review = try workspace.draft?.review()
             message = nil
         } catch {
             message = "Cannot review shot: \(error.localizedDescription)"
@@ -270,9 +296,8 @@ struct ShotWorkspaceView: View {
         }
         do {
             try persistence.save(review)
-            capture = ShotCapture(recipe: persistence.recipe)
+            workspace.installDraft(recipe: persistence.recipe)
             self.review = nil
-            yieldText = ""
             message = "Shot saved on this iPhone."
         } catch {
             message = "Save failed: \(error.localizedDescription)"
@@ -284,9 +309,19 @@ struct ShotWorkspaceView: View {
         do {
             let store = try ShotPersistence()
             persistence = store
-            capture = ShotCapture(recipe: store.recipe)
+            // Continuity: a draft already in progress (view rebuild) is never
+            // clobbered by a re-run of the store open.
+            if workspace.draft == nil {
+                workspace.installDraft(recipe: store.recipe)
+            }
         } catch {
             message = "Could not open local storage: \(error.localizedDescription)"
         }
+    }
+
+    private func syncDraftWithRecipe() {
+        guard let persistence, workspace.draft?.timer.phase == .idle,
+              workspace.draft?.recipe != persistence.recipe else { return }
+        workspace.draft = ShotCapture(recipe: persistence.recipe)
     }
 }
