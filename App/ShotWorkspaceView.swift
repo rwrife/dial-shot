@@ -162,7 +162,12 @@ struct ShotWorkspaceView: View {
                 ForEach(flowChoices.indices, id: \.self) { index in
                     let (flow, title) = flowChoices[index]
                     chip(title, selected: workspace.draft?.flowVerdict == flow, id: "flow.\(flow.rawValue)") {
-                        workspace.draft?.flowVerdict = workspace.draft?.flowVerdict == flow ? nil : flow
+                        // Read before mutate: `draft` is an @Observable class
+                        // property, so a combined read-modify-write keeps the
+                        // setter's exclusive access open while the expression
+                        // reads it back — a fatal exclusivity conflict.
+                        let current = workspace.draft?.flowVerdict
+                        workspace.draft?.flowVerdict = current == flow ? nil : flow
                         review = nil
                     }
                 }
