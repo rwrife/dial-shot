@@ -4,15 +4,28 @@ import Foundation
 public struct HistoryShot: Identifiable, Sendable {
     public let attempt: ShotAttempt
     public let beanName: String
+    public let beanRoastDate: Date?
     public let grinderName: String
     public let grinderSetting: String?
+    /// The suggestion persisted with the attempt at save time. Nil for
+    /// callers that assemble history without the stored suggestion.
+    public let suggestion: DialInSuggestion?
     public var id: UUID { attempt.id }
 
-    public init(attempt: ShotAttempt, beanName: String, grinderName: String, grinderSetting: String?) {
+    public init(
+        attempt: ShotAttempt,
+        beanName: String,
+        beanRoastDate: Date? = nil,
+        grinderName: String,
+        grinderSetting: String?,
+        suggestion: DialInSuggestion? = nil
+    ) {
         self.attempt = attempt
         self.beanName = beanName
+        self.beanRoastDate = beanRoastDate
         self.grinderName = grinderName
         self.grinderSetting = grinderSetting
+        self.suggestion = suggestion
     }
 }
 

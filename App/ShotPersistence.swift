@@ -4,8 +4,9 @@ import Foundation
 
 @MainActor
 final class ShotPersistence {
-    private(set) var recipe: RecipeSnapshot
+    private(set) var recipe: RecipeSnapshot?
     private(set) var workspaceBeanID: BeanBag.ID?
+    private let backupSource: BackupSource
     private let beans: SQLiteBeanRepository
     private let grinders: SQLiteGrinderRepository
     private let recipes: SQLiteRecipeRepository
@@ -30,6 +31,7 @@ final class ShotPersistence {
             }
         }
         #endif
+        let existingStore = FileManager.default.fileExists(atPath: databaseURL.path)
         let database = try DialShotDatabaseFactory.makeQueue(path: databaseURL.path)
         let beans = SQLiteBeanRepository(writer: database)
         let grinders = SQLiteGrinderRepository(writer: database)
@@ -39,6 +41,14 @@ final class ShotPersistence {
         self.grinders = grinders
         self.recipes = recipes
         shots = SQLiteShotRepository(writer: database)
+        backupSource = BackupSource(
+            beans: beans,
+            grinders: grinders,
+            baskets: baskets,
+            recipes: recipes,
+            shots: shots,
+            database: database
+        )
 
         if let latest = try recipes.list(beanID: nil).first {
             let remembered = try recipes.selectedWorkspaceBeanID()
@@ -55,6 +65,10 @@ final class ShotPersistence {
                 recipe = chosen.snapshot
                 workspaceBeanID = chosen.snapshot.beanID
             }
+        } else if existingStore {
+            // An explicitly restored empty store remains empty after relaunch.
+            recipe = nil
+            workspaceBeanID = nil
         } else {
             let bean = BeanBag(name: "First bean")
             let grinder = GrinderProfile(name: "Grinder", settingLabel: "Set your grinder")
@@ -113,19 +127,57 @@ final class ShotPersistence {
     }
 
     func history() throws -> [HistoryShot] {
-        let names = Dictionary(uniqueKeysWithValues: try beans.list().map { ($0.id, $0.name) })
+        let beans = try beans.list()
+        let names = Dictionary(uniqueKeysWithValues: beans.map { ($0.id, $0.name) })
+        let roastDates = Dictionary(uniqueKeysWithValues: beans.map { ($0.id, $0.roastDate) })
         let grinderNames = Dictionary(uniqueKeysWithValues: try grinders.list().map { ($0.id, $0.name) })
         return try shots.list(beanID: nil, limit: nil).map { record in
             HistoryShot(
                 attempt: record.attempt,
                 beanName: names[record.attempt.recipe.beanID] ?? "Unknown bean",
+                beanRoastDate: roastDates[record.attempt.recipe.beanID] ?? nil,
                 grinderName: grinderNames[record.attempt.recipe.grinderID] ?? "Unknown grinder",
-                grinderSetting: record.grinderSettingLabel
+                grinderSetting: record.grinderSettingLabel,
+                suggestion: record.suggestion
             )
         }
     }
 
     func save(_ review: ShotReview) throws {
         try shots.save(review.attempt, suggestion: review.suggestion)
+    }
+
+    // MARK: - Issue #7: user-owned backup and export
+
+    /// Snapshots the complete database into a versioned backup document.
+    func backupDocument() throws -> BackupDocument {
+        try LocalBackup.document(from: backupSource)
+    }
+
+    /// Replaces all local data with the contents of a validated backup
+    /// document (one transaction; a failure leaves current data untouched),
+    /// then reloads the in-memory recipe/selection so the workspace
+    /// immediately reflects the restored store.
+    func restoreBackup(_ document: BackupDocument) throws {
+        try LocalBackup.restoreAndVerify(document, from: backupSource)
+        let remembered = try recipes.selectedWorkspaceBeanID()
+        let knownBeans = try beans.list().map(\.id)
+        let rememberedBean = remembered.flatMap { knownBeans.contains($0) ? $0 : nil }
+        if let latest = try recipes.list(beanID: nil).first {
+            let beanID = rememberedBean ?? latest.snapshot.beanID
+            if let active = try recipes.active(for: beanID) {
+                recipe = active.snapshot
+                workspaceBeanID = beanID
+            } else {
+                let chosen = (try recipes.list(beanID: beanID).first) ?? latest
+                try recipes.setActive(recipeID: chosen.id, for: chosen.snapshot.beanID)
+                try recipes.setSelectedWorkspaceBeanID(chosen.snapshot.beanID)
+                recipe = chosen.snapshot
+                workspaceBeanID = chosen.snapshot.beanID
+            }
+        } else {
+            recipe = nil
+            workspaceBeanID = nil
+        }
     }
 }
