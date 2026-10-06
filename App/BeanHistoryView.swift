@@ -109,6 +109,13 @@ struct BeanHistoryView: View {
             }
 
             Section {
+                NavigationLink("Data & backup") {
+                    DataOwnershipView(persistence: persistence)
+                }
+                .accessibilityIdentifier("data.open")
+            }
+
+            Section {
                 Button("Compare two shots (\(selectedShots.count)/2)") { showComparison = true }
                     .disabled(selectedShots.count != 2)
                     .accessibilityIdentifier("history.compare")

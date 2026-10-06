@@ -75,7 +75,7 @@ The native iPhone timer and shot-capture vertical slice is implemented: a monoto
 3. Local persistence and fixture database. ✅
 4. Timer and shot-capture vertical slice. ✅
 5. Accessible per-bean history, recipe memory, comparison, and trends. ✅ (future dual-screen seam deferred)
-6. Backup/export, privacy audit, and evidence-gated TestFlight release.
+6. Backup/export, privacy audit, and evidence-gated TestFlight release. Data controls and release workflow are implemented; signed upload and processed-build evidence remain gated on the actual release run. See [data ownership and release evidence](docs/data-ownership-release-evidence.md).
 
 ## Local development
 

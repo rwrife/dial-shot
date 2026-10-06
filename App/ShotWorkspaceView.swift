@@ -63,9 +63,15 @@ struct ShotWorkspaceView: View {
                 .accessibilityIdentifier("history.open")
             }
         case .recipeContext:
-            Text("Dose \(doseText) g · Target \(targetText) g")
-                .font(.headline)
-                .accessibilityIdentifier("recipe.summary")
+            if workspace.draft?.recipe != nil || persistence?.recipe != nil {
+                Text("Dose \(doseText) g · Target \(targetText) g")
+                    .font(.headline)
+                    .accessibilityIdentifier("recipe.summary")
+            } else {
+                Text("No recipe in this backup. Restore a backup with a recipe to capture shots.")
+                    .font(.headline)
+                    .accessibilityIdentifier("recipe.empty")
+            }
         case .shotTimer:
             TimelineView(.periodic(from: .now, by: 0.25)) { _ in
                 Text(timeText)
@@ -179,7 +185,7 @@ struct ShotWorkspaceView: View {
                 .accessibilityIdentifier("capture.review")
 
             Button("Discard shot") {
-                if let persistence { workspace.installDraft(recipe: persistence.recipe) }
+                if let recipe = persistence?.recipe { workspace.installDraft(recipe: recipe) }
                 review = nil
                 message = nil
             }
@@ -296,7 +302,7 @@ struct ShotWorkspaceView: View {
         }
         do {
             try persistence.save(review)
-            workspace.installDraft(recipe: persistence.recipe)
+            if let recipe = persistence.recipe { workspace.installDraft(recipe: recipe) }
             self.review = nil
             message = "Shot saved on this iPhone."
         } catch {
@@ -311,8 +317,8 @@ struct ShotWorkspaceView: View {
             persistence = store
             // Continuity: a draft already in progress (view rebuild) is never
             // clobbered by a re-run of the store open.
-            if workspace.draft == nil {
-                workspace.installDraft(recipe: store.recipe)
+            if workspace.draft == nil, let recipe = store.recipe {
+                workspace.installDraft(recipe: recipe)
             }
         } catch {
             message = "Could not open local storage: \(error.localizedDescription)"
@@ -321,7 +327,8 @@ struct ShotWorkspaceView: View {
 
     private func syncDraftWithRecipe() {
         guard let persistence, workspace.draft?.timer.phase == .idle,
-              workspace.draft?.recipe != persistence.recipe else { return }
-        workspace.draft = ShotCapture(recipe: persistence.recipe)
+              let recipe = persistence.recipe,
+              workspace.draft?.recipe != recipe else { return }
+        workspace.draft = ShotCapture(recipe: recipe)
     }
 }

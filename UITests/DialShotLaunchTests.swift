@@ -190,6 +190,82 @@ extension DialShotLaunchTests {
 }
 
 extension DialShotLaunchTests {
+    /// System Files and share sheets are deliberately suppressed, but this
+    /// journey exercises the real JSON/CSV write paths and a Files-equivalent
+    /// URL from the app sandbox through preview/cancel/confirmed restore.
+    @MainActor
+    func testDataOwnershipExportAndPreviewedRestore() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-DialShotResetUITestStore", "-DialShotUITestSuppressSystemSheets"]
+        app.launch()
+        app.buttons["history.open"].tap()
+        let dataLink = app.buttons["data.open"]
+        scrollUntilVisible(dataLink, in: app)
+        dataLink.tap()
+        let backup = app.buttons["data.backup"]
+        XCTAssertTrue(backup.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(backup.frame.height, 44)
+        backup.tap()
+        let message = app.staticTexts["data.message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
+        let filename = message.label.replacingOccurrences(of: "Backup written: ", with: "")
+        XCTAssertTrue(filename.hasSuffix(".json"), filename)
+        app.buttons["data.csv"].tap()
+        let csvDeadline = Date().addingTimeInterval(5)
+        while !message.label.contains("CSV written:"), Date() < csvDeadline {
+            usleep(100_000)
+        }
+        XCTAssertTrue(message.label.contains("CSV written:"), message.label)
+
+        // Change the live database after the export. Cancel must keep this
+        // shot; confirmed restore must remove it (real replacement evidence).
+        app.navigationBars.buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        recordShot(app, yield: "34")
+
+        app.terminate()
+        app.launchArguments = ["-DialShotUITestSuppressSystemSheets", "-DialShotUITestRestoreFrom", filename]
+        app.launch()
+        app.buttons["history.open"].tap()
+        let restoreLink = app.buttons["data.open"]
+        scrollUntilVisible(restoreLink, in: app)
+        restoreLink.tap()
+        let confirm = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "Replace all data")).firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "1 bean, 1 grinder, 1 basket, 1 recipe, 0 shots")).firstMatch.exists)
+        let cancel = app.buttons.matching(NSPredicate(format: "label ==[c] %@", "Cancel")).firstMatch
+        if cancel.waitForExistence(timeout: 2) {
+            cancel.tap()
+        } else {
+            // The iOS 26 popover AX tree has no Cancel button; its outside
+            // dismiss region cancels the dialog without confirming restore.
+            let dismiss = app.otherElements["PopoverDismissRegion"]
+            XCTAssertTrue(dismiss.exists, app.debugDescription)
+            dismiss.tap()
+        }
+        let confirmGone = Date().addingTimeInterval(5)
+        while confirm.exists, Date() < confirmGone { usleep(100_000) }
+        XCTAssertFalse(confirm.exists)
+        app.navigationBars.buttons.firstMatch.tap()
+        let savedRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.shot.")).firstMatch
+        scrollUntilVisible(savedRow, in: app)
+        XCTAssertTrue(savedRow.exists, "cancel must leave the saved shot intact")
+        // Relaunch to obtain the same validated preview and confirm it.
+        app.terminate()
+        app.launch()
+        app.buttons["history.open"].tap()
+        let again = app.buttons["data.open"]
+        scrollUntilVisible(again, in: app)
+        again.tap()
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
+        XCTAssertTrue(app.staticTexts["Backup restored on this iPhone."].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.firstMatch.tap()
+        let empty = app.descendants(matching: .any)["history.empty"]
+        scrollUntilVisible(empty, in: app)
+        XCTAssertTrue(empty.exists, "the post-backup shot must be gone")
+    }
+
     private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 5) {
         var attempts = 0
         while !element.isHittable && attempts < maxSwipes {

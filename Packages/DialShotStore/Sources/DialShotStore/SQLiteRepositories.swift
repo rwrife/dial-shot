@@ -33,6 +33,7 @@ public enum DialShotStoreError: Error, Equatable, Sendable {
     case corruptSuggestion(String)
     case missingReference(String)
     case immutableShotConflict(UUID)
+    case backupRoundTripMismatch
 }
 
 /// SQLite-backed `BeanRepository`.
