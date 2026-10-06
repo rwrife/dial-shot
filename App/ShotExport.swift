@@ -64,12 +64,12 @@ final class ShotExportService {
     /// Validates a picked backup file and reports what it contains, without
     /// touching the database.
     func previewRestore(from url: URL) throws -> BackupPreview {
-        let scoped = PickedFile.read(url) { try Data(contentsOf: $0) }
+        let scoped = try PickedFile.read(url) { try Data(contentsOf: $0) }
         return try BackupJSONCodec.preview(scoped)
     }
 
     func readRestore(from url: URL) throws -> BackupDocument {
-        let scoped = PickedFile.read(url) { try Data(contentsOf: $0) }
+        let scoped = try PickedFile.read(url) { try Data(contentsOf: $0) }
         return try BackupJSONCodec.decodedForRestore(scoped)
     }
 
@@ -77,7 +77,7 @@ final class ShotExportService {
     /// replacement in one transaction, then re-opens local storage so the
     /// live workspace reflects the restored beans, recipe, and selection.
     func restore(from url: URL) throws {
-        let scoped = PickedFile.read(url) { try Data(contentsOf: $0) }
+        let scoped = try PickedFile.read(url) { try Data(contentsOf: $0) }
         let document = try BackupJSONCodec.decodedForRestore(scoped)
         try persistence.restoreBackup(document)
     }
