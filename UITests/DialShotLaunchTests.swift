@@ -211,7 +211,18 @@ extension DialShotLaunchTests {
         let filename = message.label.replacingOccurrences(of: "Backup written: ", with: "")
         XCTAssertTrue(filename.hasSuffix(".json"), filename)
         app.buttons["data.csv"].tap()
-        XCTAssertTrue(message.label.contains("CSV written:"))
+        let csvDeadline = Date().addingTimeInterval(5)
+        while !message.label.contains("CSV written:"), Date() < csvDeadline {
+            usleep(100_000)
+        }
+        if !message.label.contains("CSV written:") {
+            // One-shot diagnostic: the full hierarchy at failure reveals
+            // whether the event was swallowed or the state write raced.
+            add(XCTAttachment(string: app.debugDescription))
+            let error = app.staticTexts["data.error"]
+            XCTFail("CSV tap left message=\(message.label.debugDescription) "
+                + "error=\(error.exists ? error.label : "<absent>")")
+        }
 
         // Change the live database after the export. Cancel must keep this
         // shot; confirmed restore must remove it (real replacement evidence).
