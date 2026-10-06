@@ -114,7 +114,7 @@ struct DataOwnershipView: View {
             backupFile = nil
         }
         .confirmationDialog(
-            restorePreview.map { "Replace all local data with this backup?" } ?? "",
+            restorePreview != nil ? "Replace all local data with this backup?" : "",
             isPresented: $restoreConfirmed,
             titleVisibility: .visible
         ) {
