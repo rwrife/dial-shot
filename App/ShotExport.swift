@@ -1,5 +1,6 @@
 import Foundation
 import DialShotKit
+import DialShotStore
 
 /// Issue #7 — local-first data ownership at the app boundary.
 ///
