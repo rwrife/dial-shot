@@ -125,6 +125,9 @@ struct DataOwnershipView: View {
                 Text("Schema v\(restorePreview.schemaVersion.rawValue) · \(restorePreview.entityCounts.previewSummary)")
             }
         }
+        .onChange(of: restoreConfirmed) { _, presented in
+            if !presented { clearPendingRestore() }
+        }
         .sheet(item: Binding(
             get: { shareURL.map { IdentifiableURL(url: $0) } },
             set: { shareURL = $0?.url }

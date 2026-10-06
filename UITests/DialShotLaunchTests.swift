@@ -215,14 +215,7 @@ extension DialShotLaunchTests {
         while !message.label.contains("CSV written:"), Date() < csvDeadline {
             usleep(100_000)
         }
-        if !message.label.contains("CSV written:") {
-            // One-shot diagnostic: the full hierarchy at failure reveals
-            // whether the event was swallowed or the state write raced.
-            add(XCTAttachment(string: app.debugDescription))
-            let error = app.staticTexts["data.error"]
-            XCTFail("CSV tap left message=\(message.label.debugDescription) "
-                + "error=\(error.exists ? error.label : "<absent>")")
-        }
+        XCTAssertTrue(message.label.contains("CSV written:"), message.label)
 
         // Change the live database after the export. Cancel must keep this
         // shot; confirmed restore must remove it (real replacement evidence).
@@ -237,10 +230,21 @@ extension DialShotLaunchTests {
         let restoreLink = app.buttons["data.open"]
         scrollUntilVisible(restoreLink, in: app)
         restoreLink.tap()
-        let confirm = app.buttons["Replace all data"]
+        let confirm = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "Replace all data")).firstMatch
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "1 bean, 1 grinder, 1 basket, 1 recipe, 0 shots")).firstMatch.exists)
-        app.buttons["Cancel"].tap()
+        let cancel = app.buttons.matching(NSPredicate(format: "label ==[c] %@", "Cancel")).firstMatch
+        if cancel.waitForExistence(timeout: 2) {
+            cancel.tap()
+        } else {
+            // The iOS 26 popover AX tree has no Cancel button; its outside
+            // dismiss region cancels the dialog without confirming restore.
+            let dismiss = app.otherElements["PopoverDismissRegion"]
+            XCTAssertTrue(dismiss.exists, app.debugDescription)
+            dismiss.tap()
+        }
+        let confirmGone = Date().addingTimeInterval(5)
+        while confirm.exists, Date() < confirmGone { usleep(100_000) }
         XCTAssertFalse(confirm.exists)
         app.navigationBars.buttons.firstMatch.tap()
         let savedRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "history.shot.")).firstMatch
