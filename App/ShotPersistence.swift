@@ -160,24 +160,18 @@ final class ShotPersistence {
     /// immediately reflects the restored store.
     func restoreBackup(_ document: BackupDocument) throws {
         try LocalBackup.restoreAndVerify(document, from: backupSource)
-        let remembered = try recipes.selectedWorkspaceBeanID()
-        let knownBeans = try beans.list().map(\.id)
-        let rememberedBean = remembered.flatMap { knownBeans.contains($0) ? $0 : nil }
-        if let latest = try recipes.list(beanID: nil).first {
-            let beanID = rememberedBean ?? latest.snapshot.beanID
-            if let active = try recipes.active(for: beanID) {
-                recipe = active.snapshot
-                workspaceBeanID = beanID
-            } else {
-                let chosen = (try recipes.list(beanID: beanID).first) ?? latest
-                try recipes.setActive(recipeID: chosen.id, for: chosen.snapshot.beanID)
-                try recipes.setSelectedWorkspaceBeanID(chosen.snapshot.beanID)
-                recipe = chosen.snapshot
-                workspaceBeanID = chosen.snapshot.beanID
-            }
-        } else {
-            recipe = nil
-            workspaceBeanID = nil
-        }
+        // Nothing after a committed replacement may throw or mutate SQLite:
+        // otherwise the UI could report failure even though old data is gone.
+        // This document already passed the exact SQLite rehearsal, so derive
+        // the visible capture recipe directly from the validated snapshot.
+        let latest = document.beanGroups.flatMap(\.recipes).sorted {
+            if $0.createdAt != $1.createdAt { return $0.createdAt > $1.createdAt }
+            return $0.id.uuidString < $1.id.uuidString
+        }.first
+        let selected = document.beanGroups.first { $0.bean.id == document.selectedBeanID && !$0.recipes.isEmpty }
+        let active = selected.flatMap { group in group.recipes.first { $0.id == group.activeRecipeID } }
+        let chosen = active ?? selected?.recipes.sorted { $0.createdAt > $1.createdAt }.first ?? latest
+        recipe = chosen?.snapshot
+        workspaceBeanID = chosen?.snapshot.beanID
     }
 }
